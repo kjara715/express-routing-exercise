@@ -1,6 +1,6 @@
 const express = require('express');
-
 const app = express();
+const ExpressError = require("./expressError");
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -41,21 +41,6 @@ function mode(string) {
     return modes;
   }
 
-//   function median(string) {
-
-//     let numArray = string.split(",")
-
-//     numArray.sort( function(a,b) {return a - b;} );
-
-//     let half = Math.floor(numArray.length/2);
-
-//     if(numArray.length % 2)
-//         return numArray[half];
-//     else
-//         return (numArray[half-1] + numArray[half]) / 2.0;
-// }
-
-
 function median(string) {
     let numArray = string.split(",")
     const mid = Math.floor(numArray.length / 2),
@@ -63,9 +48,20 @@ function median(string) {
     return numArray.length % 2 !== 0 ? parseInt(nums[mid]) : (parseInt(nums[mid - 1]) + parseInt(nums[mid])) / 2;
   };
 
-app.get('/mean', function(req, res) {
-    console.log(req.query)
-    console.log(req.query.nums)
+app.get('/mean', function(req, res, next) {
+    if(!req.query.nums){
+        const badRequest = new ExpressError("Bad Request, must have nums", 400);
+        return next(badRequest)
+    }
+    let numArray = req.query.nums.split(",")
+    for(let num of numArray){
+        intNum=parseInt(num)
+        if(!intNum){
+            const badRequest = new ExpressError(`Bad Request, ${num} is not a number`, 400);
+            return next(badRequest)
+        }
+    }
+
     let avg = mean(req.query.nums)
     // res.send("The mean is:"  + mean(req.query.nums))
 
@@ -76,9 +72,21 @@ app.get('/mean', function(req, res) {
     // return res.status(404).json('Whoops! Nothing here!');
   });
 
-app.get('/median', function(req, res) {
+app.get('/median', function(req, res, next) {
+    if(!req.query.nums){
+        const badRequest = new ExpressError("Bad Request, must have nums", 400);
+        return next(badRequest)
+    }
+    let numArray = req.query.nums.split(",")
+    for(let num of numArray){
+        intNum=parseInt(num)
+        if(!intNum){
+            const badRequest = new ExpressError(`Bad Request, ${num} is not a number`, 400);
+            return next(badRequest)
+        }
+    }
 
-
+    
     let med= median(req.query.nums)
     // res.send("The mean is:"  + mean(req.query.nums))
 
@@ -90,7 +98,19 @@ app.get('/median', function(req, res) {
   
   /** Sample of validating / error handling */
   
-app.get('/mode', function(req, res) {
+app.get('/mode', function(req, res, next) {
+    if(!req.query.nums){
+        const badRequest = new ExpressError("Bad Request, must have nums", 400);
+        return next(badRequest)
+    }
+    let numArray = req.query.nums.split(",")
+    for(let num of numArray){
+        intNum=parseInt(num)
+        if(!intNum){
+            const badRequest = new ExpressError(`Bad Request, ${num} is not a number`, 400);
+            return next(badRequest)
+        }
+    }
 
     let result=mode(req.query.nums)
 
@@ -100,7 +120,23 @@ app.get('/mode', function(req, res) {
     })
 
 });
+
+// app.use(function (req, res, next) {
+//     console.log(req.body)
+//     const badRequest = new ExpressError("Bad Request, only numbers allowed", 400);
+//     return next(badRequest)
+//   });
   
+app.use(function(err, req, res, next) {
+    // the default status is 500 Internal Server Error
+    let status = err.status || 500;
+    let message = err.message;
+  
+    // set the status and alert the user
+    return res.status(status).json({
+      error: {message, status}
+    });
+  });
   /** Start server on port 3000 */
   
 app.listen(3000, function() {
